@@ -2,6 +2,10 @@
 Engine — wires the mouse hook to the key simulator using the
 current configuration.  Sits between the hook layer and the UI.
 Supports per-application auto-switching of profiles.
+
+Supports:
+- Logitech MX Master 3S (HID++ with gesture button and software DPI)
+- Tecknet 6-Button Mouse (standard HID with middle/back/forward buttons)
 """
 
 import threading
@@ -9,7 +13,7 @@ from core.mouse_hook import MouseHook, MouseEvent
 from core.key_simulator import execute_action
 from core.config import (
     load_config, get_active_mappings, get_profile_for_app,
-    BUTTON_TO_EVENTS, save_config,
+    BUTTON_TO_EVENTS, save_config, SUPPORTED_MICE,
 )
 from core.app_detector import AppDetector
 
@@ -27,12 +31,33 @@ class Engine:
         self._enabled = True
         self._hscroll_accum = 0
         self._current_profile: str = self.cfg.get("active_profile", "default")
+        self._mouse_model = self.cfg.get("mouse_model", "auto")
         self._app_detector = AppDetector(self._on_app_change)
         self._profile_change_cb = None       # UI callback
         self._connection_change_cb = None   # UI callback for device status
         self._lock = threading.Lock()
+        
+        # Auto-detect mouse type if configured
+        if self._mouse_model == "auto":
+            self._detect_mouse_model()
+        
         self._setup_hooks()
         self.hook.set_connection_change_callback(self._on_connection_change)
+
+    def _detect_mouse_model(self):
+        """Auto-detect connected mouse model."""
+        try:
+            from core.hid_gesture import HidGestureListener
+            if HidGestureListener:
+                detected = HidGestureListener.detect_mouse_type()
+                if detected != "unknown":
+                    self._mouse_model = detected
+                    self.cfg["mouse_model"] = detected
+                    save_config(self.cfg)
+                    print(f"[Engine] Auto-detected mouse: {SUPPORTED_MICE.get(detected, {}).get('name', detected)}")
+        except Exception as e:
+            print(f"[Engine] Mouse detection error: {e}")
+            self._mouse_model = "logitech_mx_master_3s"  # Default for backward compatibility
 
     # ------------------------------------------------------------------
     # Hook wiring
@@ -124,15 +149,31 @@ class Engine:
     # Public API
     # ------------------------------------------------------------------
     def set_dpi(self, dpi_value):
-        """Send DPI change to the mouse via HID++."""
+        """Send DPI change to the mouse via HID++ (Logitech only).
+        For Tecknet mice, DPI is stored in config but applied as macOS system DPI."""
         self.cfg.setdefault("settings", {})["dpi"] = dpi_value
         save_config(self.cfg)
-        # Try via the hook's HidGestureListener
+        
+        # Tecknet mice don't support software DPI control
+        if self._mouse_model == "tecknet_6button":
+            print("[Engine] Tecknet mouse: DPI setting stored but not applied to hardware")
+            print("[Engine] Use the physical DPI button on your mouse to change sensitivity")
+            return True
+        
+        # Try via the hook's HidGestureListener (Logitech only)
         hg = self.hook._hid_gesture
         if hg:
             return hg.set_dpi(dpi_value)
         print("[Engine] No HID++ connection — DPI not applied")
         return False
+
+    def get_mouse_model(self):
+        """Return the current mouse model name."""
+        return SUPPORTED_MICE.get(self._mouse_model, {}).get("name", self._mouse_model)
+    
+    def mouse_supports_dpi(self):
+        """Check if the current mouse supports software DPI control."""
+        return SUPPORTED_MICE.get(self._mouse_model, {}).get("supports_dpi", False)
 
     def reload_mappings(self):
         """

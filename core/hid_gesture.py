@@ -12,6 +12,10 @@ protocol (over hidapi) to:
 
 Requires:  pip install hidapi
 Falls back gracefully if the package or device are unavailable.
+
+For Tecknet and other generic HID mice: This module will detect the mouse
+but advanced features (gesture button, software DPI control) are not available.
+Standard buttons (middle, back, forward) are handled via CGEventTap/mouse_hook.
 """
 
 import sys
@@ -29,6 +33,7 @@ except ImportError:
 
 # ── Constants ─────────────────────────────────────────────────────
 LOGI_VID       = 0x046D
+TECKNET_VID    = 0x25A7  # BEKEN - OEM for Tecknet TK-MS029 and similar
 
 SHORT_ID       = 0x10        # HID++ short report (7 bytes total)
 LONG_ID        = 0x11        # HID++ long  report (20 bytes total)
@@ -121,12 +126,47 @@ class HidGestureListener:
         """Return list of device-info dicts for Logitech vendor-page TLCs."""
         out = []
         try:
+            # Search for Logitech vendor-specific HID collections
             for info in _hid.enumerate(LOGI_VID, 0):
                 if info.get("usage_page", 0) >= 0xFF00:
                     out.append(info)
+            # Also search for Tecknet (PixArt) mice - they don't have vendor HID
+            # but we enumerate them to detect presence
+            for info in _hid.enumerate(TECKNET_VID, 0):
+                out.append(info)
         except Exception as exc:
             print(f"[HidGesture] enumerate error: {exc}")
         return out
+
+    @staticmethod
+    def detect_mouse_type():
+        """Detect connected mouse type: 'logitech_mx_master_3s', 'tecknet_6button', or 'unknown'."""
+        try:
+            # Check for Logitech MX Master 3S
+            for info in _hid.enumerate(LOGI_VID, 0xB034):
+                if info.get("usage_page", 0) >= 0xFF00:
+                    print("[HidGesture] Detected: Logitech MX Master 3S")
+                    return "logitech_mx_master_3s"
+            
+            # Check for Tecknet mice (BEKEN OEM)
+            for info in _hid.enumerate(TECKNET_VID, 0):
+                pid = info.get("product_id", 0)
+                mfg = info.get("manufacturer_string", "") or ""
+                prod = info.get("product_string", "") or ""
+                
+                # Match by PID or by product name
+                if pid == 0xFAA0 or "TK-MS029" in prod or "TK-" in prod:
+                    print(f"[HidGesture] Detected: Tecknet Mouse (PID=0x{pid:04X}, Product={prod})")
+                    return "tecknet_6button"
+                    
+                # Also check common Tecknet PIDs
+                if pid in [0x2510, 0x2520, 0x2530, 0x2540, 0x2550, 0x2560, 0x2570, 0x2580]:
+                    print(f"[HidGesture] Detected: Tecknet Mouse (PID=0x{pid:04X})")
+                    return "tecknet_6button"
+        except Exception as exc:
+            print(f"[HidGesture] Detection error: {exc}")
+        
+        return "unknown"
 
     # ── low-level HID++ I/O ───────────────────────────────────────
 

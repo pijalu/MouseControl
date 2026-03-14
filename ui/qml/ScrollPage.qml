@@ -64,6 +64,7 @@ Item {
                     radius: Theme.radius
                     color: Theme.bgCard
                     border.width: 1; border.color: Theme.border
+                    visible: backend.dpiSupported
 
                     Column {
                         id: dpiContent
@@ -293,8 +294,9 @@ Item {
                         anchors {
                             fill: parent; margins: 14
                         }
-                        text: "Note: DPI changes require HID++ communication with "
-                              + "the device and will take effect after a short delay."
+                        text: backend.dpiSupported
+                              ? "Note: DPI changes require HID++ communication with the device and will take effect after a short delay."
+                              : "Note: This mouse uses hardware DPI control. Use the physical DPI button on your mouse to change sensitivity. The DPI value shown is stored for reference only."
                         font { family: Theme.fontFamily; pixelSize: 12 }
                         color: Theme.textDim
                         wrapMode: Text.WordWrap

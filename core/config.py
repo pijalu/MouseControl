@@ -12,11 +12,32 @@ if sys.platform == "darwin":
     CONFIG_DIR = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "Mouser")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
+# Supported mouse models
+SUPPORTED_MICE = {
+    "logitech_mx_master_3s": {
+        "name": "Logitech MX Master 3S",
+        "vendor_id": 0x046D,
+        "product_ids": [0xB034],
+        "buttons": ["middle", "gesture", "xbutton1", "xbutton2", "hscroll_left", "hscroll_right"],
+        "supports_dpi": True,
+        "dpi_range": (200, 8000),
+    },
+    "tecknet_6button": {
+        "name": "Tecknet 6-Button Mouse",
+        "vendor_id": 0x25A7,  # BEKEN (OEM for Tecknet TK-MS029 and similar)
+        "product_ids": [0xFAA0, 0x2510, 0x2520, 0x2530, 0x2540, 0x2550, 0x2560, 0x2570, 0x2580],
+        "buttons": ["middle", "dpi", "xbutton1", "xbutton2"],
+        "supports_dpi": False,  # DPI is hardware-only on Tecknet
+        "dpi_range": None,
+    },
+}
+
 # Which mouse events map to which friendly button names
 # Order matches the Logi Options+ diagram (top view then side view)
 BUTTON_NAMES = {
     "middle":        "Middle button",
     "gesture":       "Gesture button",
+    "dpi":           "DPI button",
     "xbutton1":      "Back button",
     "xbutton2":      "Forward button",
     "hscroll_left":  "Horizontal scroll left",
@@ -27,6 +48,7 @@ BUTTON_NAMES = {
 BUTTON_TO_EVENTS = {
     "middle":        ("middle_down", "middle_up"),
     "gesture":       ("gesture_down", "gesture_up"),
+    "dpi":           ("middle_down", "middle_up"),  # Tecknet DPI button often maps to middle click
     "xbutton1":      ("xbutton1_down", "xbutton1_up"),
     "xbutton2":      ("xbutton2_down", "xbutton2_up"),
     "hscroll_left":  ("hscroll_left",),
@@ -34,7 +56,8 @@ BUTTON_TO_EVENTS = {
 }
 
 DEFAULT_CONFIG = {
-    "version": 2,
+    "version": 3,
+    "mouse_model": "auto",  # "auto", "logitech_mx_master_3s", "tecknet_6button"
     "active_profile": "default",
     "profiles": {
         "default": {
@@ -43,6 +66,7 @@ DEFAULT_CONFIG = {
             "mappings": {
                 "middle": "none",
                 "gesture": "none",
+                "dpi": "none",    # Tecknet DPI button
                 "xbutton1": "alt_tab",
                 "xbutton2": "alt_tab",
                 "hscroll_left": "browser_back",
@@ -56,7 +80,7 @@ DEFAULT_CONFIG = {
         "hscroll_threshold": 1,
         "invert_hscroll": False,  # swap horizontal scroll directions
         "invert_vscroll": False,  # swap vertical scroll directions
-        "dpi": 1000,              # pointer speed / DPI setting
+        "dpi": 1000,              # pointer speed / DPI setting (macOS system DPI for Tecknet)
     },
 }
 
@@ -187,6 +211,14 @@ def _migrate(cfg):
         cfg["settings"].setdefault("invert_vscroll", False)
         cfg["settings"].setdefault("dpi", 1000)
         cfg["version"] = 2
+
+    if version < 3:
+        # v2 → v3: add mouse_model setting and dpi button mapping for Tecknet support
+        cfg.setdefault("mouse_model", "auto")
+        for pdata in cfg.get("profiles", {}).values():
+            mappings = pdata.setdefault("mappings", {})
+            mappings.setdefault("dpi", "none")
+        cfg["version"] = 3
 
     # Always migrate old wmplayer.exe → Microsoft.Media.Player.exe in profile apps
     for pdata in cfg.get("profiles", {}).values():

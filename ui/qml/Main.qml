@@ -11,7 +11,7 @@ ApplicationWindow {
     height: 700
     minimumWidth: 900
     minimumHeight: 600
-    title: "Mouser — MX Master 3S"
+    title: "Mouser — " + (backend.mouseModel || "Mouse Control")
     color: Theme.bg
 
     Material.theme: Material.Dark

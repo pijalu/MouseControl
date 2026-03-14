@@ -624,9 +624,14 @@ elif sys.platform == "darwin":
               "pip install pyobjc-framework-Quartz")
 
     # HID button numbers (typical USB/BT HID mapping on macOS)
+    # Standard for most mice including Logitech and Tecknet
     _BTN_MIDDLE = 2
     _BTN_BACK = 3
     _BTN_FORWARD = 4
+    
+    # Tecknet-specific: some models use different button mappings
+    # DPI button may map to button 5 or generate middle-click
+    _BTN_DPI = 5
 
     class MouseHook:
         """
@@ -731,6 +736,10 @@ elif sys.platform == "darwin":
                     elif btn == _BTN_FORWARD:
                         mouse_event = MouseEvent(MouseEvent.XBUTTON2_DOWN)
                         should_block = MouseEvent.XBUTTON2_DOWN in self._blocked_events
+                    elif btn == _BTN_DPI:
+                        # Tecknet DPI button - treat as middle click if not separately mapped
+                        mouse_event = MouseEvent(MouseEvent.MIDDLE_DOWN)
+                        should_block = MouseEvent.MIDDLE_DOWN in self._blocked_events
 
                 elif event_type == Quartz.kCGEventOtherMouseUp:
                     btn = Quartz.CGEventGetIntegerValueField(
@@ -749,6 +758,10 @@ elif sys.platform == "darwin":
                     elif btn == _BTN_FORWARD:
                         mouse_event = MouseEvent(MouseEvent.XBUTTON2_UP)
                         should_block = MouseEvent.XBUTTON2_UP in self._blocked_events
+                    elif btn == _BTN_DPI:
+                        # Tecknet DPI button - treat as middle click if not separately mapped
+                        mouse_event = MouseEvent(MouseEvent.MIDDLE_UP)
+                        should_block = MouseEvent.MIDDLE_UP in self._blocked_events
 
                 elif event_type == Quartz.kCGEventScrollWheel:
                     h_delta = Quartz.CGEventGetIntegerValueField(

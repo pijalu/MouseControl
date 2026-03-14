@@ -39,7 +39,9 @@ class Backend(QObject):
         super().__init__(parent)
         self._engine = engine
         self._cfg = load_config()
-        self._mouse_connected = False
+        self._mouse_connected = True  # Assume connected for non-HID++ mice
+        self._mouse_model = "unknown"
+        self._dpi_supported = False
 
         # Cross-thread signal connections
         self._profileSwitchRequest.connect(
@@ -54,6 +56,14 @@ class Backend(QObject):
             engine.set_profile_change_callback(self._onEngineProfileSwitch)
             engine.set_dpi_read_callback(self._onEngineDpiRead)
             engine.set_connection_change_callback(self._onEngineConnectionChange)
+            # Get mouse model info
+            if hasattr(engine, 'get_mouse_model'):
+                self._mouse_model = engine.get_mouse_model()
+            if hasattr(engine, 'mouse_supports_dpi'):
+                self._dpi_supported = engine.mouse_supports_dpi()
+            # For non-HID++ mice (Tecknet), assume connected
+            if self._mouse_model and "Tecknet" in self._mouse_model:
+                self._mouse_connected = True
 
     # ── Properties ─────────────────────────────────────────────
 
@@ -128,6 +138,14 @@ class Backend(QObject):
     @Property(bool, notify=mouseConnectedChanged)
     def mouseConnected(self):
         return self._mouse_connected
+
+    @Property(str, notify=mouseConnectedChanged)
+    def mouseModel(self):
+        return self._mouse_model
+
+    @Property(bool, notify=mouseConnectedChanged)
+    def dpiSupported(self):
+        return self._dpi_supported
 
     @Property(list, notify=profilesChanged)
     def profiles(self):

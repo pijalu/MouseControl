@@ -1,11 +1,11 @@
-# Mouser — MX Master 3S Button Remapper
+# Mouser — Multi-Mouse Button Remapper
 
 <p align="center">
   <img src="images/logo_icon.png" width="128" alt="Mouser logo" />
 </p>
 
 A lightweight, open-source, fully local alternative to **Logitech Options+** for
-remapping every programmable button on the **Logitech MX Master 3S** mouse.
+remapping mouse buttons. Supports **Logitech MX Master 3S** and **Tecknet 6-Button** mice.
 
 No telemetry. No cloud. No Logitech account required.
 
@@ -35,18 +35,22 @@ No telemetry. No cloud. No Logitech account required.
 
 _The UI shows an interactive diagram of the MX Master 3S. Click any button's hotspot dot to change its action._
 
-## Supported Device
+## Supported Devices
 
-| Property | Value |
-|---|---|
-| Device | Logitech MX Master 3S |
-| Product ID | `0xB034` |
-| Protocol | HID++ 4.5 (Bluetooth) |
-| Connection | Bluetooth (USB receiver also works for basic buttons) |
+| Property | Logitech MX Master 3S | Tecknet 6-Button |
+|---|---|---|
+| Product ID | `0xB034` | `0x2510`, `0x2520`, `0x2530`, etc. |
+| Protocol | HID++ 4.5 (Bluetooth) | Standard USB HID |
+| Connection | Bluetooth / USB receiver | Bluetooth / USB receiver |
+| Gesture Button | ✅ Yes (HID++ divert) | ❌ No |
+| Software DPI | ✅ Yes (HID++ 200-8000) | ❌ No (hardware only) |
+| Programmable Buttons | 6 (middle, gesture, back, forward, hscroll L/R) | 5 (middle/DPI, back, forward) |
 
-> **Note:** The architecture is designed to be extensible to other Logitech HID++ mice, but only the MX Master 3S is tested.
+> **Note:** The architecture is designed to be extensible to more mice. Auto-detection identifies your mouse model on first run.
 
 ## Default Mappings
+
+### Logitech MX Master 3S
 
 | Button | Default Action |
 |---|---|
@@ -56,6 +60,16 @@ _The UI shows an interactive diagram of the MX Master 3S. Click any button's hot
 | Gesture button | Pass-through |
 | Horizontal scroll left | Browser Back |
 | Horizontal scroll right | Browser Forward |
+
+### Tecknet 6-Button
+
+| Button | Default Action |
+|---|---|
+| Back button | Alt + Tab (Switch Windows) |
+| Forward button | Alt + Tab (Switch Windows) |
+| Middle/DPI button | Pass-through |
+
+> **Note for Tecknet users:** The DPI button typically sends a middle-click event. You can remap it to any action. DPI changes must be done using the physical button on the mouse.
 
 ## Available Actions
 
@@ -314,8 +328,9 @@ The app has two pages accessible from a slim sidebar:
 ## Known Limitations
 
 - **Windows & macOS only** — Linux is not yet supported
-- **MX Master 3S only** — HID++ feature indices and CIDs are hardcoded for this device (PID `0xB034`)
-- **Bluetooth recommended** — HID++ gesture button divert works best over Bluetooth; USB receiver has partial support
+- **Limited device support** — Currently supports Logitech MX Master 3S and Tecknet 6-Button mice
+- **Tecknet DPI control** — DPI changes must be done via the physical button on the mouse; software DPI control is not available
+- **Tecknet gesture button** — Tecknet mice do not have a gesture button; this feature is Logitech-only
 - **Conflicts with Logitech Options+** — both apps fight over HID++ access; quit Options+ before running Mouser
 - **Scroll inversion is experimental** — uses coalesced `PostMessage` injection to avoid LL hook deadlocks; may not work perfectly in all apps
 - **Admin not required** — but some games or elevated windows may not receive injected keystrokes
@@ -323,6 +338,7 @@ The app has two pages accessible from a slim sidebar:
 ## Future Work
 
 - [ ] **More devices** — support other Logitech HID++ mice (MX Master 3, MX Anywhere 3, etc.)
+- [ ] **More Tecknet models** — add support for additional Tecknet mouse models
 - [ ] **Custom key combos** — let users define arbitrary key sequences (e.g., Ctrl+Shift+P)
 - [ ] **Start with Windows** — autostart via registry or Task Scheduler
 - [ ] **Improved scroll inversion** — explore driver-level or interception-driver approaches
@@ -330,6 +346,8 @@ The app has two pages accessible from a slim sidebar:
 - [ ] **Per-app profile auto-creation** — detect new apps and prompt to create a profile
 - [ ] **Export/import config** — share configurations between machines
 - [ ] **Tray icon badge** — show active profile name in tray tooltip
+- [x] **Tecknet mouse support** — added support for Tecknet 6-Button mice
+- [x] **Auto-detect mouse model** — automatically detects connected mouse on startup
 - [x] **macOS support** — added via CGEventTap, Quartz CGEvent, and NSWorkspace (thanks [@andrew-sz](https://github.com/andrew-sz))
 - [ ] **Linux support** — investigate `libevdev` / `evdev` hooks
 - [ ] **Plugin system** — allow third-party action providers
