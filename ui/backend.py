@@ -83,7 +83,7 @@ class Backend(QObject):
             })
         return result
 
-    @Property(list, constant=True)
+    @Property(list, notify=mappingsChanged)
     def actionCategories(self):
         """Actions grouped by category — for the action picker chips."""
         from collections import OrderedDict
@@ -100,7 +100,7 @@ class Backend(QObject):
             cats.setdefault(cat, []).append({"id": aid, "label": data["label"]})
         return [{"category": c, "actions": a} for c, a in cats.items()]
 
-    @Property(list, constant=True)
+    @Property(list, notify=mappingsChanged)
     def allActions(self):
         """Flat sorted action list (Do Nothing first) — for ComboBoxes."""
         result = []

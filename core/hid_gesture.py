@@ -123,17 +123,18 @@ class HidGestureListener:
 
     @staticmethod
     def _vendor_hid_infos():
-        """Return list of device-info dicts for Logitech vendor-page TLCs."""
+        """Return list of device-info dicts for Logitech vendor-page TLCs.
+        
+        NOTE: Tecknet mice are NOT included here because they don't support
+        HID++ protocol. They are handled via standard CGEventTap in mouse_hook.
+        """
         out = []
         try:
-            # Search for Logitech vendor-specific HID collections
+            # Search for Logitech vendor-specific HID collections only
+            # Tecknet mice don't support HID++ and should not be enumerated here
             for info in _hid.enumerate(LOGI_VID, 0):
                 if info.get("usage_page", 0) >= 0xFF00:
                     out.append(info)
-            # Also search for Tecknet (PixArt) mice - they don't have vendor HID
-            # but we enumerate them to detect presence
-            for info in _hid.enumerate(TECKNET_VID, 0):
-                out.append(info)
         except Exception as exc:
             print(f"[HidGesture] enumerate error: {exc}")
         return out
@@ -387,6 +388,13 @@ class HidGestureListener:
         for info in infos:
             pid = info.get("product_id", 0)
             up  = info.get("usage_page", 0)
+
+            # Skip non-Logitech devices - they don't support HID++
+            vid = info.get("vendor_id", 0)
+            if vid != LOGI_VID:
+                print(f"[HidGesture] Skipping non-Logitech device VID=0x{vid:04X} PID=0x{pid:04X}")
+                continue
+
             try:
                 d = _hid.device()
                 d.open_path(info["path"])
@@ -401,18 +409,22 @@ class HidGestureListener:
             for idx in (0xFF, 1, 2, 3, 4, 5, 6):
                 self._dev_idx = idx
                 fi = self._find_feature(FEAT_REPROG_V4)
-                if fi is not None:
+                # 0xFF is the HID++ error response, not a valid feature index
+                if fi is not None and fi != 0xFF:
                     self._feat_idx = fi
                     print(f"[HidGesture] Found REPROG_V4 @0x{fi:02X}  "
                           f"PID=0x{pid:04X} devIdx=0x{idx:02X}")
                     # Also discover ADJUSTABLE_DPI
                     dpi_fi = self._find_feature(FEAT_ADJ_DPI)
-                    if dpi_fi:
+                    if dpi_fi and dpi_fi != 0xFF:
                         self._dpi_idx = dpi_fi
                         print(f"[HidGesture] Found ADJUSTABLE_DPI @0x{dpi_fi:02X}")
                     if self._divert():
                         return True
                     break        # right device but divert failed
+                elif fi == 0xFF:
+                    print(f"[HidGesture] HID++ not supported on VID=0x{vid:04X} PID=0x{pid:04X}")
+                    break        # Not a HID++ device, try next
 
             # Couldn't use this interface — close and try next
             try:
@@ -425,15 +437,22 @@ class HidGestureListener:
 
     def _main_loop(self):
         """Outer loop: connect → listen → reconnect on error/disconnect."""
+        no_device_logged = False
         while self._running:
             if not self._try_connect():
-                print("[HidGesture] No compatible device; retrying in 5 s…")
+                # Only log once, then silently retry
+                if not no_device_logged:
+                    print("[HidGesture] No compatible Logitech device found — "
+                          "using standard mouse events only")
+                    no_device_logged = True
                 for _ in range(50):
                     if not self._running:
                         return
                     time.sleep(0.1)
                 continue
 
+            # Reset the flag if we successfully connect
+            no_device_logged = False
             self._connected = True
             if self._on_connect:
                 try:

@@ -76,6 +76,10 @@ if sys.platform == "win32":
     VK_N = 0x4E
     VK_F = 0x46
     VK_D = 0x44
+    VK_ADD = 0x6B       # + on numpad
+    VK_SUBTRACT = 0x6D  # - on numpad
+    VK_OEM_PLUS = 0xBB  # =/+ key on main keyboard
+    VK_OEM_MINUS = 0xBD # -/_ key on main keyboard
 
     class KEYBDINPUT(Structure):
         _fields_ = [
@@ -231,6 +235,16 @@ if sys.platform == "win32":
             "keys": [VK_CONTROL, VK_F],
             "category": "Editing",
         },
+        "zoom_in": {
+            "label": "Zoom In (Ctrl+=)",
+            "keys": [VK_CONTROL, VK_OEM_PLUS],
+            "category": "Editing",
+        },
+        "zoom_out": {
+            "label": "Zoom Out (Ctrl+-)",
+            "keys": [VK_CONTROL, VK_OEM_MINUS],
+            "category": "Editing",
+        },
         "win_d": {
             "label": "Show Desktop (Win+D)",
             "keys": [VK_LWIN, VK_D],
@@ -323,6 +337,8 @@ elif sys.platform == "darwin":
     kVK_ANSI_C = 0x08
     kVK_ANSI_V = 0x09
     kVK_ANSI_Z = 0x06
+    kVK_ANSI_EQUAL = 0x18   # = / +
+    kVK_ANSI_MINUS = 0x1B   # - / _
 
     kVK_F1  = 0x7A
     kVK_F2  = 0x78
@@ -476,6 +492,16 @@ elif sys.platform == "darwin":
         "find": {
             "label": "Find (Cmd+F)",
             "keys": [kVK_Command, kVK_ANSI_F],
+            "category": "Editing",
+        },
+        "zoom_in": {
+            "label": "Zoom In (Cmd++)",
+            "keys": [kVK_Command, kVK_ANSI_EQUAL],
+            "category": "Editing",
+        },
+        "zoom_out": {
+            "label": "Zoom Out (Cmd+-)",
+            "keys": [kVK_Command, kVK_ANSI_MINUS],
             "category": "Editing",
         },
         "win_d": {

@@ -24,6 +24,11 @@ Item {
     property real labelOffX: 120          // x offset for annotation
     property real labelOffY: -30          // y offset for annotation
 
+    // ── Function to update sublabel from external source ─────
+    function updateSublabel(newSublabel) {
+        hotspot.sublabel = newSublabel
+    }
+
     // ── Computed centre ───────────────────────────────────────
     property real cx: imgItem.x + imgItem.offX + normX * imgItem.paintedWidth
     property real cy: imgItem.y + imgItem.offY + normY * imgItem.paintedHeight

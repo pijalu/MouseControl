@@ -17,7 +17,11 @@ Item {
     property string selectedProfileLabel: ""
     property var    selectedProfileApps: []
 
-    Component.onCompleted: selectProfile(backend.activeProfile)
+    Component.onCompleted: {
+        selectProfile(backend.activeProfile)
+        // Initial sublabel refresh to ensure they're set correctly
+        refreshAllSublabels()
+    }
 
     function selectProfile(name) {
         selectedProfile = name
@@ -33,6 +37,8 @@ Item {
         selectedButton = ""
         selectedButtonName = ""
         selectedActionId = ""
+        // Refresh sublabels for the new profile
+        refreshAllSublabels()
     }
 
     Connections {
@@ -101,15 +107,33 @@ Item {
         id: mappingsConn
         target: backend
         function onMappingsChanged() {
-            if (selectedButton === "") return
-            var btns = backend.getProfileMappings(selectedProfile)
-            for (var i = 0; i < btns.length; i++) {
-                if (btns[i].key === selectedButton) {
-                    selectedActionId = btns[i].actionId
-                    break
+            // Update selected action if a button is selected
+            if (selectedButton !== "") {
+                var btns = backend.getProfileMappings(selectedProfile)
+                for (var i = 0; i < btns.length; i++) {
+                    if (btns[i].key === selectedButton) {
+                        selectedActionId = btns[i].actionId
+                        break
+                    }
                 }
             }
+            // Update all hotspot sublabels
+            refreshAllSublabels()
         }
+    }
+
+    function refreshAllSublabels() {
+        var middleLabel = actionFor("middle")
+        var gestureLabel = actionFor("gesture")
+        var xbutton2Label = actionFor("xbutton2")
+        var xbutton1Label = actionFor("xbutton1")
+        var hscrollLabel = "L: " + actionFor("hscroll_left") + " | R: " + actionFor("hscroll_right")
+        
+        if (dotMiddle) dotMiddle.updateSublabel(middleLabel)
+        if (dotGesture) dotGesture.updateSublabel(gestureLabel)
+        if (dotXbutton2) dotXbutton2.updateSublabel(xbutton2Label)
+        if (dotXbutton1) dotXbutton1.updateSublabel(xbutton1Label)
+        if (dotHscroll) dotHscroll.updateSublabel(hscrollLabel)
     }
 
     function actionFor(key) {
@@ -483,6 +507,7 @@ Item {
 
                         // Hotspot dots
                         HotspotDot {
+                            id: dotMiddle
                             anchors.fill: mouseImageArea
                             imgItem: mouseImg
                             normX: 0.35; normY: 0.4
@@ -494,6 +519,7 @@ Item {
                         }
 
                         HotspotDot {
+                            id: dotGesture
                             anchors.fill: mouseImageArea
                             imgItem: mouseImg
                             normX: 0.7; normY: 0.63
@@ -505,6 +531,7 @@ Item {
                         }
 
                         HotspotDot {
+                            id: dotXbutton2
                             anchors.fill: mouseImageArea
                             imgItem: mouseImg
                             normX: 0.6; normY: 0.48
@@ -516,6 +543,7 @@ Item {
                         }
 
                         HotspotDot {
+                            id: dotXbutton1
                             anchors.fill: mouseImageArea
                             imgItem: mouseImg
                             normX: 0.65; normY: 0.4
@@ -527,6 +555,7 @@ Item {
                         }
 
                         HotspotDot {
+                            id: dotHscroll
                             anchors.fill: mouseImageArea
                             imgItem: mouseImg
                             normX: 0.6; normY: 0.375
